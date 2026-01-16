@@ -1,0 +1,38 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "ninja-clang-debug",
+      "displayName": "Ninja (Debug) + clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "--gcc-toolchain=/usr",
+        "CMAKE_EXE_LINKER_FLAGS": "-L/usr/lib/gcc/x86_64-linux-gnu/11",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ENABLE_TIDY": "ON",
+        "ENABLE_WARNINGS": "ON"
+      }
+    },
+    {
+      "name": "ninja-clang-release",
+      "displayName": "Ninja (Release) + clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_EXE_LINKER_FLAGS": "-L/usr/lib/gcc/x86_64-linux-gnu/11",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ENABLE_TIDY": "ON",
+        "ENABLE_WARNINGS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "ninja-clang-debug" },
+    { "name": "release", "configurePreset": "ninja-clang-release" }
+  ]
+}

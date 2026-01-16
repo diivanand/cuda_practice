@@ -1,0 +1,22 @@
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  clang-analyzer-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-owning-memory,
+  -readability-magic-numbers
+
+WarningsAsErrors: '*'
+
+FormatStyle: file
+
+CheckOptions:
+  - key:             modernize-use-trailing-return-type.IgnoreLambda
+    value:           '1'
+  - key:             cppcoreguidelines-pro-type-reinterpret-cast.IgnoreClasses
+    value:           '0'
+
