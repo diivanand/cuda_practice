@@ -21,11 +21,15 @@ static void launch_vec_add(const float* a, const float* b, float* out, std::size
 int main() {
     constexpr std::size_t n = 1u << 20;
 
-    std::vector<float> ha(n), hb(n), hout(n);
+    std::vector<float> ha(n);
+    std::vector<float> hb(n);
+    std::vector<float> hout(n);
     std::iota(ha.begin(), ha.end(), 0.0f);
     std::fill(hb.begin(), hb.end(), 2.0f);
 
-    device_buffer<float> da(n), db(n), dout(n);
+    device_buffer<float> da(n);
+    device_buffer<float> db(n);
+    device_buffer<float> dout(n);
 
     copy_to_device(da, ha.data(), n);
     copy_to_device(db, hb.data(), n);
