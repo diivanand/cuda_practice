@@ -41,6 +41,45 @@ target_compile_options(cuda_practice PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
 )
 
+# ---- Testing ----
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL      https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+include(GoogleTest)
+
+add_executable(cuda_practice_tests
+  tests/test_vec_add.cu
+)
+
+target_include_directories(cuda_practice_tests PRIVATE src)
+target_link_libraries(cuda_practice_tests PRIVATE GTest::gtest_main)
+
+set_target_properties(cuda_practice_tests PROPERTIES
+  CUDA_SEPARABLE_COMPILATION ON
+  CUDA_ARCHITECTURES 75
+)
+
+target_compile_options(cuda_practice_tests PRIVATE
+  $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
+)
+
+if (ENABLE_WARNINGS)
+  if (MSVC)
+    target_compile_options(cuda_practice_tests PRIVATE /W4)
+  else()
+    target_compile_options(cuda_practice_tests PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+endif()
+
+gtest_discover_tests(cuda_practice_tests)
+
 # ---- clang-tidy integration ----
 if (ENABLE_TIDY)
   find_program(CLANG_TIDY_EXE NAMES clang-tidy)
