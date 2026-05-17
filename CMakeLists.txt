@@ -28,7 +28,7 @@ endif()
 function(configure_cuda_target TARGET)
   set_target_properties(${TARGET} PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_ARCHITECTURES 75  # change to match your GPU; e.g. 86 (Ampere), 89 (Ada)
+    CUDA_ARCHITECTURES "87;89"  # sm_87: Jetson Orin Nano (Ampere); sm_89: RTX 4090 (Ada Lovelace)
   )
   target_compile_options(${TARGET} PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>

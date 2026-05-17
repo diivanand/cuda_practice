@@ -12,7 +12,7 @@ CUDA C++ practice project: vector addition and RAII GPU utilities.
 | clang++ | 13+ | host compiler |
 | clang-tidy | same as clang++ | optional; skipped if not found |
 
-The presets target **sm_75** (Turing). Change `CUDA_ARCHITECTURES` in `CMakeLists.txt` to match your GPU (e.g. `86` for Ampere, `89` for Ada).
+The presets target **sm_87** (Jetson Orin Nano, Ampere) and **sm_89** (RTX 4090, Ada Lovelace). Adjust `CUDA_ARCHITECTURES` in the root `CMakeLists.txt` if you are targeting different hardware.
 
 ## Configure
 
