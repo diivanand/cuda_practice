@@ -60,6 +60,9 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
+# ---- Shared utilities ----
+add_subdirectory(src/shared)
+
 # ---- Chapters ----
 add_subdirectory(src/ch1)
 add_subdirectory(tests/ch1)

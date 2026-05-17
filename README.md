@@ -147,7 +147,7 @@ Each chapter's public API lives in its own namespace. Shared CUDA utilities are 
 |-----------|-------------|----------|
 | `ch1` | `vec_add.cuh` | `vec_add` kernel |
 | `ch4` | `check_prime_cpu.h`, `check_prime_gpu.cuh` | `check_prime_cpu`, `check_prime_gpu_kernel` |
-| `cuda_utils` | `cuda_utils.cuh` | `device_buffer<T>`, `copy_to_device`, `copy_to_host`, `cuda_fail` |
+| `cuda_utils` | `shared/cuda_utils.cuh` | `device_buffer<T>`, `copy_to_device`, `copy_to_host`, `cuda_fail` |
 
 `CUDA_TRY(expr)` is a macro (macros cannot be namespaced) and is defined globally in `cuda_utils.cuh`.
 
@@ -161,11 +161,13 @@ ch1::vec_add<<<grid, block>>>(a, b, out, n);
 
 ```
 src/
+  shared/
+    cuda_utils.cuh      # cuda_utils:: — device_buffer<T>, CUDA_TRY, copy helpers
+    CMakeLists.txt      # defines shared (INTERFACE); chapters link against it
   ch1/
     main.cu             # entry point, launches ch1::vec_add kernel
     vec_add.cuh         # declaration of ch1::vec_add
     vec_add.cu          # definition of ch1::vec_add
-    cuda_utils.cuh      # cuda_utils:: — device_buffer<T>, CUDA_TRY, copy helpers
     CMakeLists.txt      # defines ch1_lib (STATIC) and ch1 executable
   ch4/
     main.cu             # entry point (placeholder)
