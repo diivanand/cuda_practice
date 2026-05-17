@@ -3,45 +3,51 @@ cmake_minimum_required(VERSION 3.22)
 project(cuda_practice LANGUAGES CXX CUDA)
 
 # ---- Language standards ----
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CUDA_STANDARD 17) # CUDA toolchains vary; C++20 in device code depends on CUDA version.
+set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # ---- Options ----
 option(ENABLE_WARNINGS "Enable lots of warnings" ON)
 option(ENABLE_TIDY "Enable clang-tidy (for C++ sources)" ON)
 
-# ---- Build target ----
-add_executable(cuda_practice
-  src/main.cu
-)
-
-target_include_directories(cuda_practice PRIVATE src)
-
-# Good defaults for CUDA compilation
-set_target_properties(cuda_practice PROPERTIES
-  CUDA_SEPARABLE_COMPILATION ON
-  CUDA_ARCHITECTURES 75  # or: 75;80;86;89 etc
-)
-
-# Host compiler flags
-if (ENABLE_WARNINGS)
-  if (MSVC)
-    target_compile_options(cuda_practice PRIVATE /W4)
-  else()
-    target_compile_options(cuda_practice PRIVATE -Wall -Wextra -Wpedantic)
+# ---- clang-tidy ----
+if (ENABLE_TIDY)
+  find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+  if (NOT CLANG_TIDY_EXE)
+    message(WARNING "clang-tidy not found; ENABLE_TIDY=ON but clang-tidy is unavailable.")
   endif()
 endif()
 
-# CUDA flags (nvcc)
-target_compile_options(cuda_practice PRIVATE
-  $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
-)
+# ---- Helper: apply common CUDA/CXX settings to a target ----
+# Usage: configure_cuda_target(<target>)
+# Call this in every chapter's CMakeLists.txt after add_executable/add_library.
+function(configure_cuda_target TARGET)
+  set_target_properties(${TARGET} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 75  # change to match your GPU; e.g. 86 (Ampere), 89 (Ada)
+  )
+  target_compile_options(${TARGET} PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
+  )
+  if (ENABLE_WARNINGS)
+    if (MSVC)
+      target_compile_options(${TARGET} PRIVATE /W4)
+    else()
+      target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+  endif()
+  if (ENABLE_TIDY AND CLANG_TIDY_EXE)
+    set_target_properties(${TARGET} PROPERTIES
+      CXX_CLANG_TIDY "${CLANG_TIDY_EXE};--warnings-as-errors=*;--quiet"
+    )
+  endif()
+endfunction()
 
-# ---- Testing ----
+# ---- Dependencies ----
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -54,44 +60,6 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-add_executable(cuda_practice_tests
-  tests/test_vec_add.cu
-)
-
-target_include_directories(cuda_practice_tests PRIVATE src)
-target_link_libraries(cuda_practice_tests PRIVATE GTest::gtest_main)
-
-set_target_properties(cuda_practice_tests PROPERTIES
-  CUDA_SEPARABLE_COMPILATION ON
-  CUDA_ARCHITECTURES 75
-)
-
-target_compile_options(cuda_practice_tests PRIVATE
-  $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
-)
-
-if (ENABLE_WARNINGS)
-  if (MSVC)
-    target_compile_options(cuda_practice_tests PRIVATE /W4)
-  else()
-    target_compile_options(cuda_practice_tests PRIVATE -Wall -Wextra -Wpedantic)
-  endif()
-endif()
-
-gtest_discover_tests(cuda_practice_tests)
-
-# ---- clang-tidy integration ----
-if (ENABLE_TIDY)
-  find_program(CLANG_TIDY_EXE NAMES clang-tidy)
-  if (CLANG_TIDY_EXE)
-    # Apply to C++ compilation. (CMake won't reliably run clang-tidy on .cu via nvcc.)
-    set(CMAKE_CXX_CLANG_TIDY
-      ${CLANG_TIDY_EXE};
-      --warnings-as-errors=*;
-      --quiet
-    )
-  else()
-    message(WARNING "clang-tidy not found; ENABLE_TIDY=ON but clang-tidy is unavailable.")
-  endif()
-endif()
-
+# ---- Chapters ----
+add_subdirectory(src/ch1)
+add_subdirectory(tests/ch1)
