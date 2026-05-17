@@ -1,2 +1,3 @@
-add_library(shared INTERFACE cuda_utils.cuh)
+add_library(shared INTERFACE)
+target_sources(shared INTERFACE cuda_utils.cuh)
 target_include_directories(shared INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
