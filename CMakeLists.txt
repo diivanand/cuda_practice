@@ -63,3 +63,5 @@ include(GoogleTest)
 # ---- Chapters ----
 add_subdirectory(src/ch1)
 add_subdirectory(tests/ch1)
+add_subdirectory(src/ch4)
+add_subdirectory(tests/ch4)

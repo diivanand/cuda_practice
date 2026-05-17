@@ -41,5 +41,5 @@ int main() {
 
     std::cout << "out[0]   = " << hout[0] << "\n";
     std::cout << "out[n-1] = " << hout[n - 1] << "\n";
-    return 0;
+    return EXIT_SUCCESS;
 }

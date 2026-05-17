@@ -8,6 +8,8 @@
 #include <type_traits>
 
 // ---- Error handling ----
+
+// Prints a CUDA error message and terminates the process. Called by CUDA_TRY.
 [[noreturn]] inline void cuda_fail(cudaError_t e,
                                   std::string_view what,
                                   std::string_view file,
@@ -19,13 +21,17 @@
   std::exit(1);
 }
 
+// Evaluates expr, which must return cudaError_t. Calls cuda_fail (process exit) on failure.
 #define CUDA_TRY(expr)                                                     \
   do {                                                                     \
     cudaError_t _e = (expr);                                               \
     if (_e != cudaSuccess) cuda_fail(_e, #expr, __FILE__, __LINE__);       \
   } while (0)
 
-// ---- RAII device buffer (C++17 compatible) ----
+// ---- RAII device buffer ----
+
+// RAII wrapper for a cudaMalloc'd device allocation. Non-copyable; move-only.
+// Zero-count construction is valid and allocates nothing.
 template <class T>
 class device_buffer {
   static_assert(!std::is_void<T>::value, "device_buffer<void> is not allowed");
@@ -69,6 +75,7 @@ public:
   std::size_t bytes() const noexcept { return count_ * sizeof(T); }
   explicit operator bool() const noexcept { return ptr_ != nullptr; }
 
+  // Frees the allocation and zeroes the pointer and count. Safe to call multiple times.
   void reset() noexcept {
     if (ptr_) {
       cudaFree(ptr_); // best-effort in destructor context
@@ -83,12 +90,15 @@ private:
 };
 
 // ---- memcpy helpers ----
+
+// Copies count elements from host pointer src into dst. count == 0 is a no-op.
 template <class T>
 inline void copy_to_device(device_buffer<T>& dst, const T* src, std::size_t count) {
   if (count == 0) return;
   CUDA_TRY(cudaMemcpy(dst.data(), src, count * sizeof(T), cudaMemcpyHostToDevice));
 }
 
+// Copies count elements from src into host pointer dst. count == 0 is a no-op.
 template <class T>
 inline void copy_to_host(T* dst, const device_buffer<T>& src, std::size_t count) {
   if (count == 0) return;
