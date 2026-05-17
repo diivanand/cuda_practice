@@ -9,11 +9,13 @@
 
 // ---- Error handling ----
 
+namespace cuda_utils {
+
 // Prints a CUDA error message and terminates the process. Called by CUDA_TRY.
 [[noreturn]] inline void cuda_fail(cudaError_t e,
-                                  std::string_view what,
-                                  std::string_view file,
-                                  int line) {
+                                   std::string_view what,
+                                   std::string_view file,
+                                   int line) {
   std::cerr << "CUDA error: " << what
             << " | " << cudaGetErrorString(e)
             << " (" << static_cast<int>(e) << ")"
@@ -21,14 +23,19 @@
   std::exit(1);
 }
 
+} // namespace cuda_utils
+
 // Evaluates expr, which must return cudaError_t. Calls cuda_fail (process exit) on failure.
-#define CUDA_TRY(expr)                                                     \
-  do {                                                                     \
-    cudaError_t _e = (expr);                                               \
-    if (_e != cudaSuccess) cuda_fail(_e, #expr, __FILE__, __LINE__);       \
+#define CUDA_TRY(expr)                                                         \
+  do {                                                                         \
+    cudaError_t _e = (expr);                                                   \
+    if (_e != cudaSuccess)                                                     \
+      cuda_utils::cuda_fail(_e, #expr, __FILE__, __LINE__);                   \
   } while (0)
 
 // ---- RAII device buffer ----
+
+namespace cuda_utils {
 
 // RAII wrapper for a cudaMalloc'd device allocation. Non-copyable; move-only.
 // Zero-count construction is valid and allocates nothing.
@@ -104,3 +111,5 @@ inline void copy_to_host(T* dst, const device_buffer<T>& src, std::size_t count)
   if (count == 0) return;
   CUDA_TRY(cudaMemcpy(dst, src.data(), count * sizeof(T), cudaMemcpyDeviceToHost));
 }
+
+} // namespace cuda_utils

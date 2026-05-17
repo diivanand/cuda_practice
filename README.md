@@ -58,7 +58,7 @@ out[n-1] = 1.04858e+06
 
 ## Tests
 
-Tests use [Google Test](https://github.com/google/googletest) (fetched automatically by CMake) and are run through CTest. Each chapter has its own test binary (`ch1_tests`, `ch2_tests`, …).
+Tests use [Google Test](https://github.com/google/googletest) (fetched automatically by CMake) and are run through CTest. Each chapter has its own test binary (`ch1_tests`, `ch4_tests`, …).
 
 ```bash
 # Build everything including tests, then run all tests
@@ -139,42 +139,75 @@ cmake --preset ninja-clang-debug -DENABLE_TIDY=OFF
 cmake --build --preset debug
 ```
 
+## Namespaces
+
+Each chapter's public API lives in its own namespace. Shared CUDA utilities are under `cuda_utils`.
+
+| Namespace | Provided by | Contents |
+|-----------|-------------|----------|
+| `ch1` | `vec_add.cuh` | `vec_add` kernel |
+| `ch4` | `check_prime_cpu.h`, `check_prime_gpu.cuh` | `check_prime_cpu`, `check_prime_gpu_kernel` |
+| `cuda_utils` | `cuda_utils.cuh` | `device_buffer<T>`, `copy_to_device`, `copy_to_host`, `cuda_fail` |
+
+`CUDA_TRY(expr)` is a macro (macros cannot be namespaced) and is defined globally in `cuda_utils.cuh`.
+
+CUDA `__global__` kernels fully support C++ namespaces — launch them with the qualified name:
+
+```cpp
+ch1::vec_add<<<grid, block>>>(a, b, out, n);
+```
+
 ## Project layout
 
 ```
 src/
   ch1/
-    main.cu          # entry point, launches vec_add kernel
-    vec_add.cuh      # __global__ vector addition kernel
-    cuda_utils.cuh   # RAII device_buffer, CUDA_TRY error macro
-    CMakeLists.txt   # defines the `ch1` executable
+    main.cu             # entry point, launches ch1::vec_add kernel
+    vec_add.cuh         # declaration of ch1::vec_add
+    vec_add.cu          # definition of ch1::vec_add
+    cuda_utils.cuh      # cuda_utils:: — device_buffer<T>, CUDA_TRY, copy helpers
+    CMakeLists.txt      # defines ch1_lib (STATIC) and ch1 executable
+  ch4/
+    main.cu             # entry point (placeholder)
+    check_prime_cpu.h   # declaration of ch4::check_prime_cpu
+    check_prime_cpu.cpp # definition of ch4::check_prime_cpu
+    check_prime_gpu.cuh # declaration of ch4::check_prime_gpu_kernel
+    check_prime_gpu.cu  # definition of ch4::check_prime_gpu_kernel
+    CMakeLists.txt      # defines ch4_lib (STATIC) and ch4 executable
 tests/
   ch1/
-    test_vec_add.cu  # Google Test cases for vec_add kernel and device_buffer
-    CMakeLists.txt   # defines the `ch1_tests` binary
-CMakeLists.txt       # root: common settings, dependencies, chapter subdirs
+    test_vec_add.cu     # Google Test cases for ch1::vec_add and cuda_utils::device_buffer
+    CMakeLists.txt      # links ch1_lib and GTest
+  ch4/
+    test_ch4.cu         # Google Test cases for ch4 (placeholder)
+    CMakeLists.txt      # links ch4_lib and GTest
+CMakeLists.txt          # root: common settings, dependencies, chapter subdirs
 CMakePresets.json
 .clang-tidy
 ```
 
 ### Adding a new chapter
 
-1. Create `src/chapterN/` with your sources and a `CMakeLists.txt`:
+1. Create `src/chN/` with your headers, implementation files, `main.cu`, and a `CMakeLists.txt`:
    ```cmake
-   add_executable(chapterN main.cu)
-   target_include_directories(chapterN PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-   configure_cuda_target(chapterN)
+   add_library(chN_lib STATIC foo.cu bar.cpp foo.cuh bar.h)
+   target_include_directories(chN_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+   configure_cuda_target(chN_lib)
+
+   add_executable(chN main.cu)
+   target_link_libraries(chN PRIVATE chN_lib)
+   configure_cuda_target(chN)
    ```
-2. Create `tests/chapterN/` with your tests and a `CMakeLists.txt`:
+2. Create `tests/chN/` with your tests and a `CMakeLists.txt`:
    ```cmake
-   add_executable(chapterN_tests test_foo.cu)
-   target_include_directories(chapterN_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/chapterN)
-   target_link_libraries(chapterN_tests PRIVATE GTest::gtest_main)
-   configure_cuda_target(chapterN_tests)
-   gtest_discover_tests(chapterN_tests TEST_PREFIX "chapterN/")
+   add_executable(chN_tests test_foo.cu)
+   target_link_libraries(chN_tests PRIVATE chN_lib GTest::gtest_main)
+   configure_cuda_target(chN_tests)
+   gtest_discover_tests(chN_tests TEST_PREFIX "chN/")
    ```
 3. Add both to the root `CMakeLists.txt`:
    ```cmake
-   add_subdirectory(src/chapterN)
-   add_subdirectory(tests/chapterN)
+   add_subdirectory(src/chN)
+   add_subdirectory(tests/chN)
    ```
+4. Put all chapter-specific symbols in a `chN` namespace. Shared CUDA utilities go in `cuda_utils` (see `src/ch1/cuda_utils.cuh`).

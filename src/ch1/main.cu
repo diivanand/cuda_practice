@@ -14,7 +14,7 @@ static void launch_vec_add(const float* a, const float* b, float* out, std::size
     dim3 block(256);
     dim3 grid((ni + static_cast<int>(block.x) - 1) / static_cast<int>(block.x));
 
-    vec_add<<<grid, block>>>(a, b, out, ni);
+    ch1::vec_add<<<grid, block>>>(a, b, out, ni);
     CUDA_TRY(cudaGetLastError());
 }
 
@@ -27,17 +27,17 @@ int main() {
     std::iota(ha.begin(), ha.end(), 0.0f);
     std::fill(hb.begin(), hb.end(), 2.0f);
 
-    device_buffer<float> da(n);
-    device_buffer<float> db(n);
-    device_buffer<float> dout(n);
+    cuda_utils::device_buffer<float> da(n);
+    cuda_utils::device_buffer<float> db(n);
+    cuda_utils::device_buffer<float> dout(n);
 
-    copy_to_device(da, ha.data(), n);
-    copy_to_device(db, hb.data(), n);
+    cuda_utils::copy_to_device(da, ha.data(), n);
+    cuda_utils::copy_to_device(db, hb.data(), n);
 
     launch_vec_add(da.data(), db.data(), dout.data(), n);
     CUDA_TRY(cudaDeviceSynchronize());
 
-    copy_to_host(hout.data(), dout, n);
+    cuda_utils::copy_to_host(hout.data(), dout, n);
 
     std::cout << "out[0]   = " << hout[0] << "\n";
     std::cout << "out[n-1] = " << hout[n - 1] << "\n";

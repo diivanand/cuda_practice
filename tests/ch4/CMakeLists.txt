@@ -1,5 +1,4 @@
 add_executable(ch4_tests test_ch4.cu)
-target_include_directories(ch4_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/ch4)
-target_link_libraries(ch4_tests PRIVATE GTest::gtest_main)
+target_link_libraries(ch4_tests PRIVATE ch4_lib GTest::gtest_main)
 configure_cuda_target(ch4_tests)
 gtest_discover_tests(ch4_tests TEST_PREFIX "ch4/")
