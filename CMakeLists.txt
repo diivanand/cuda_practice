@@ -13,7 +13,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # ---- Options ----
 option(ENABLE_WARNINGS "Enable lots of warnings" ON)
 option(ENABLE_TIDY "Enable clang-tidy (for C++ sources)" ON)
-option(ENABLE_FORMAT "Auto-format sources with clang-format on every build" ON)
+option(ENABLE_FORMAT "Enable the 'format' target (clang-format on all sources)" ON)
 
 # ---- clang-tidy ----
 if (ENABLE_TIDY)
@@ -58,10 +58,7 @@ function(configure_cuda_target TARGET)
     get_target_property(target_sources ${TARGET} SOURCES)
     foreach(source_file IN LISTS target_sources)
       get_filename_component(abs_source "${source_file}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-      add_custom_command(TARGET ${TARGET} PRE_BUILD
-        COMMAND ${CLANG_FORMAT_EXE} -i "${abs_source}"
-        COMMENT "clang-format: ${abs_source}"
-      )
+      set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${abs_source}")
     endforeach()
   endif()
 endfunction()
@@ -88,3 +85,12 @@ add_subdirectory(src/ch1)
 add_subdirectory(tests/ch1)
 add_subdirectory(src/ch4)
 add_subdirectory(tests/ch4)
+
+# ---- format target ----
+if (ENABLE_FORMAT AND CLANG_FORMAT_EXE)
+  get_property(all_format_sources GLOBAL PROPERTY FORMAT_SOURCES)
+  add_custom_target(format
+    COMMAND ${CLANG_FORMAT_EXE} -i ${all_format_sources}
+    COMMENT "clang-format: formatting all sources"
+  )
+endif()

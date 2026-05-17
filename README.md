@@ -133,9 +133,13 @@ Test output is written to `build/debug/Testing/Temporary/LastTest.log`.
 
 clang-tidy runs automatically on any `.cpp`/`.cxx` sources during the build when `ENABLE_TIDY=ON` (the default). Rules are defined in `.clang-tidy`; all warnings are treated as errors. `.cu` files are compiled by nvcc, which does not integrate with clang-tidy.
 
-clang-format runs as a `PRE_BUILD` step on every source file in every target when `ENABLE_FORMAT=ON` (the default). Style is defined in `.clang-format` (K&R brace style, 4-space indent).
+clang-format is available as an explicit `format` target — it does **not** run automatically on every build. Style is defined in `.clang-format` (K&R brace style, 4-space indent). Run it with:
 
-To disable for a one-off build:
+```bash
+ninja -C build/debug format
+```
+
+To disable the targets entirely:
 
 ```bash
 cmake --preset ninja-clang-debug -DENABLE_TIDY=OFF -DENABLE_FORMAT=OFF
