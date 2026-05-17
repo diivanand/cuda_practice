@@ -8,7 +8,8 @@
 #include "cuda_utils.cuh"
 #include "vec_add.cuh"
 
-static void launch_vec_add(const float* a, const float* b, float* out, std::size_t n) {
+static void launch_vec_add(const float *a, const float *b, float *out,
+                           std::size_t n) {
     const int ni = static_cast<int>(n);
 
     dim3 block(256);

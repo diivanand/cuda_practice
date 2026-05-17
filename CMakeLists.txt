@@ -81,6 +81,7 @@ include(GoogleTest)
 
 # ---- Shared utilities ----
 add_subdirectory(src/shared)
+add_subdirectory(tests/shared)
 
 # ---- Chapters ----
 add_subdirectory(src/ch1)

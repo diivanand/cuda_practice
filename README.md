@@ -11,6 +11,7 @@ CUDA C++ practice project: vector addition and RAII GPU utilities.
 | CUDA Toolkit | 11.x+ | `nvcc --version` |
 | clang++ | 13+ | host compiler |
 | clang-tidy | same as clang++ | optional; skipped if not found |
+| clang-format | same as clang++ | optional; skipped if not found |
 
 The presets target **sm_87** (Jetson Orin Nano, Ampere) and **sm_89** (RTX 4090, Ada Lovelace). Adjust `CUDA_ARCHITECTURES` in the root `CMakeLists.txt` if you are targeting different hardware.
 
@@ -128,14 +129,16 @@ Alternatively, pass Google Test's own flags directly to a chapter's binary:
 
 Test output is written to `build/debug/Testing/Temporary/LastTest.log`.
 
-## Static analysis
+## Static analysis and formatting
 
-clang-tidy is wired up via `CXX_CLANG_TIDY` and runs automatically on any `.cpp`/`.cxx` sources during the build when `ENABLE_TIDY=ON` (the default for both presets). Rules are defined in `.clang-tidy`; all warnings are treated as errors. `.cu` files are compiled by nvcc, which does not integrate with clang-tidy, so it has no effect on them.
+clang-tidy runs automatically on any `.cpp`/`.cxx` sources during the build when `ENABLE_TIDY=ON` (the default). Rules are defined in `.clang-tidy`; all warnings are treated as errors. `.cu` files are compiled by nvcc, which does not integrate with clang-tidy.
 
-To disable tidy for a one-off build:
+clang-format runs as a `PRE_BUILD` step on every source file in every target when `ENABLE_FORMAT=ON` (the default). Style is defined in `.clang-format` (K&R brace style, 4-space indent).
+
+To disable for a one-off build:
 
 ```bash
-cmake --preset ninja-clang-debug -DENABLE_TIDY=OFF
+cmake --preset ninja-clang-debug -DENABLE_TIDY=OFF -DENABLE_FORMAT=OFF
 cmake --build --preset debug
 ```
 
@@ -146,8 +149,8 @@ Each chapter's public API lives in its own namespace. Shared CUDA utilities are 
 | Namespace | Provided by | Contents |
 |-----------|-------------|----------|
 | `ch1` | `vec_add.cuh` | `vec_add` kernel |
-| `ch4` | `check_prime_cpu.h`, `check_prime_gpu.cuh` | `check_prime_cpu`, `check_prime_gpu_kernel` |
-| `cuda_utils` | `shared/cuda_utils.cuh` | `device_buffer<T>`, `copy_to_device`, `copy_to_host`, `cuda_fail` |
+| `ch4` | `check_prime_cpu.h`, `check_prime_gpu.cuh` | `check_prime_cpu`, `check_prime_gpu_kernel`, `is_prime_device` |
+| `cuda_utils` | `shared/cuda_utils.cuh` | `device_buffer<T>`, `copy_to_device`, `copy_to_host`, `cuda_fail`, `CudaEventTimer` |
 
 `CUDA_TRY(expr)` is a macro (macros cannot be namespaced) and is defined globally in `cuda_utils.cuh`.
 
@@ -162,30 +165,35 @@ ch1::vec_add<<<grid, block>>>(a, b, out, n);
 ```
 src/
   shared/
-    cuda_utils.cuh      # cuda_utils:: — device_buffer<T>, CUDA_TRY, copy helpers
-    CMakeLists.txt      # defines shared (INTERFACE); chapters link against it
+    cuda_utils.cuh          # cuda_utils:: — device_buffer<T>, CUDA_TRY, copy helpers, CudaEventTimer
+    CMakeLists.txt          # defines shared (INTERFACE); chapters link against it
   ch1/
-    main.cu             # entry point, launches ch1::vec_add kernel
-    vec_add.cuh         # declaration of ch1::vec_add
-    vec_add.cu          # definition of ch1::vec_add
-    CMakeLists.txt      # defines ch1_lib (STATIC) and ch1 executable
+    main.cu                 # entry point, launches ch1::vec_add kernel
+    vec_add.cuh             # declaration of ch1::vec_add
+    vec_add.cu              # definition of ch1::vec_add
+    CMakeLists.txt          # defines ch1_lib (STATIC) and ch1 executable
   ch4/
-    main.cu             # entry point (placeholder)
-    check_prime_cpu.h   # declaration of ch4::check_prime_cpu
-    check_prime_cpu.cpp # definition of ch4::check_prime_cpu
-    check_prime_gpu.cuh # declaration of ch4::check_prime_gpu_kernel
-    check_prime_gpu.cu  # definition of ch4::check_prime_gpu_kernel
-    CMakeLists.txt      # defines ch4_lib (STATIC) and ch4 executable
+    main.cu                 # entry point: GPU vs CPU prime benchmark
+    check_prime_cpu.h       # declaration of ch4::check_prime_cpu
+    check_prime_cpu.cpp     # definition of ch4::check_prime_cpu
+    check_prime_gpu.cuh     # declarations of ch4::check_prime_gpu_kernel, ch4::is_prime_device
+    check_prime_gpu.cu      # definitions
+    CMakeLists.txt          # defines ch4_lib (STATIC) and ch4 executable
 tests/
+  shared/
+    test_cuda_utils.cu      # Google Test cases for cuda_utils::device_buffer and CudaEventTimer
+    CMakeLists.txt          # links shared and GTest
   ch1/
-    test_vec_add.cu     # Google Test cases for ch1::vec_add and cuda_utils::device_buffer
-    CMakeLists.txt      # links ch1_lib and GTest
+    test_vec_add.cu         # Google Test cases for ch1::vec_add
+    CMakeLists.txt          # links ch1_lib and GTest
   ch4/
-    test_ch4.cu         # Google Test cases for ch4 (placeholder)
-    CMakeLists.txt      # links ch4_lib and GTest
-CMakeLists.txt          # root: common settings, dependencies, chapter subdirs
+    test_check_prime_cpu.cpp  # Google Test cases for ch4::check_prime_cpu (CPU only)
+    test_check_prime_gpu.cu   # Google Test cases for ch4::is_prime_device (GPU kernel)
+    CMakeLists.txt            # links ch4_lib, shared, and GTest
+CMakeLists.txt              # root: common settings, dependencies, chapter subdirs
 CMakePresets.json
 .clang-tidy
+.clang-format
 ```
 
 ### Adding a new chapter
@@ -212,4 +220,4 @@ CMakePresets.json
    add_subdirectory(src/chN)
    add_subdirectory(tests/chN)
    ```
-4. Put all chapter-specific symbols in a `chN` namespace. Shared CUDA utilities go in `cuda_utils` (see `src/ch1/cuda_utils.cuh`).
+4. Put all chapter-specific symbols in a `chN` namespace. Shared CUDA utilities go in `cuda_utils` (see `src/shared/cuda_utils.cuh`).

@@ -113,4 +113,37 @@ inline auto copy_to_host(T* dst, const device_buffer<T>& src, std::size_t count)
   CUDA_TRY(cudaMemcpy(dst, src.data(), count * sizeof(T), cudaMemcpyDeviceToHost));
 }
 
+// ---- CUDA event timer ----
+
+class CudaEventTimer {
+public:
+    CudaEventTimer() {
+        cudaEventCreate(&start_);
+        cudaEventCreate(&stop_);
+    }
+    ~CudaEventTimer() {
+        cudaEventDestroy(start_);
+        cudaEventDestroy(stop_);
+    }
+
+    CudaEventTimer(const CudaEventTimer&) = delete;
+    auto operator=(const CudaEventTimer&) -> CudaEventTimer& = delete;
+
+    auto record_start() -> void { cudaEventRecord(start_, 0); }
+    auto record_stop() -> void {
+        cudaEventRecord(stop_, 0);
+        cudaEventSynchronize(stop_);
+    }
+
+    auto elapsed_ms() const -> float {
+        float ms = 0.0F;
+        cudaEventElapsedTime(&ms, start_, stop_);
+        return ms;
+    }
+
+private:
+    cudaEvent_t start_{};
+    cudaEvent_t stop_{};
+};
+
 } // namespace cuda_utils
