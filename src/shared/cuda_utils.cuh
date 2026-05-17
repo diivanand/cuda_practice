@@ -1,6 +1,7 @@
 #pragma once
 #include <cuda_runtime.h>
 
+#include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -84,9 +85,12 @@ public:
   explicit operator bool() const noexcept { return ptr_ != nullptr; }
 
   // Frees the allocation and zeroes the pointer and count. Safe to call multiple times.
+  // noexcept: reset() is called from the destructor, where throwing is not an
+  // option. cudaFree errors are intentionally ignored — best-effort cleanup,
+  // consistent with standard RAII practice.
   auto reset() noexcept -> void {
     if (ptr_) {
-      cudaFree(ptr_); // best-effort in destructor context
+      cudaFree(ptr_);
       ptr_ = nullptr;
       count_ = 0;
     }
@@ -102,6 +106,7 @@ private:
 // Copies count elements from host pointer src into dst. count == 0 is a no-op.
 template <class T>
 inline auto copy_to_device(device_buffer<T>& dst, const T* src, std::size_t count) -> void {
+  assert(count <= dst.size());
   if (count == 0) { return; }
   CUDA_TRY(cudaMemcpy(dst.data(), src, count * sizeof(T), cudaMemcpyHostToDevice));
 }
@@ -109,6 +114,7 @@ inline auto copy_to_device(device_buffer<T>& dst, const T* src, std::size_t coun
 // Copies count elements from src into host pointer dst. count == 0 is a no-op.
 template <class T>
 inline auto copy_to_host(T* dst, const device_buffer<T>& src, std::size_t count) -> void {
+  assert(count <= src.size());
   if (count == 0) { return; }
   CUDA_TRY(cudaMemcpy(dst, src.data(), count * sizeof(T), cudaMemcpyDeviceToHost));
 }
@@ -118,26 +124,45 @@ inline auto copy_to_host(T* dst, const device_buffer<T>& src, std::size_t count)
 class CudaEventTimer {
 public:
     CudaEventTimer() {
-        cudaEventCreate(&start_);
-        cudaEventCreate(&stop_);
+        CUDA_TRY(cudaEventCreate(&start_));
+        CUDA_TRY(cudaEventCreate(&stop_));
     }
+
     ~CudaEventTimer() {
-        cudaEventDestroy(start_);
-        cudaEventDestroy(stop_);
+        if (start_) { cudaEventDestroy(start_); }
+        if (stop_)  { cudaEventDestroy(stop_); }
     }
 
     CudaEventTimer(const CudaEventTimer&) = delete;
     auto operator=(const CudaEventTimer&) -> CudaEventTimer& = delete;
 
-    auto record_start() -> void { cudaEventRecord(start_, 0); }
+    CudaEventTimer(CudaEventTimer&& other) noexcept
+        : start_(other.start_), stop_(other.stop_) {
+        other.start_ = nullptr;
+        other.stop_  = nullptr;
+    }
+
+    auto operator=(CudaEventTimer&& other) noexcept -> CudaEventTimer& {
+        if (this != &other) {
+            if (start_) { cudaEventDestroy(start_); }
+            if (stop_)  { cudaEventDestroy(stop_); }
+            start_ = other.start_;
+            stop_  = other.stop_;
+            other.start_ = nullptr;
+            other.stop_  = nullptr;
+        }
+        return *this;
+    }
+
+    auto record_start() -> void { CUDA_TRY(cudaEventRecord(start_, 0)); }
     auto record_stop() -> void {
-        cudaEventRecord(stop_, 0);
-        cudaEventSynchronize(stop_);
+        CUDA_TRY(cudaEventRecord(stop_, 0));
+        CUDA_TRY(cudaEventSynchronize(stop_));
     }
 
     auto elapsed_ms() const -> float {
         float ms = 0.0F;
-        cudaEventElapsedTime(&ms, start_, stop_);
+        CUDA_TRY(cudaEventElapsedTime(&ms, start_, stop_));
         return ms;
     }
 

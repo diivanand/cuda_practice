@@ -76,3 +76,13 @@ TEST(CudaEventTimer, ElapsedNonNegative) {
     timer.record_stop();
     EXPECT_GE(timer.elapsed_ms(), 0.0F);
 }
+
+TEST(CudaEventTimer, MoveConstruct) {
+    cuda_utils::CudaEventTimer src;
+    src.record_start();
+    CUDA_TRY(cudaDeviceSynchronize());
+    src.record_stop();
+
+    const cuda_utils::CudaEventTimer dst(std::move(src));
+    EXPECT_GE(dst.elapsed_ms(), 0.0F);
+}
