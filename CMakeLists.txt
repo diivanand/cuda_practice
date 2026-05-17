@@ -13,12 +13,21 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # ---- Options ----
 option(ENABLE_WARNINGS "Enable lots of warnings" ON)
 option(ENABLE_TIDY "Enable clang-tidy (for C++ sources)" ON)
+option(ENABLE_FORMAT "Auto-format sources with clang-format on every build" ON)
 
 # ---- clang-tidy ----
 if (ENABLE_TIDY)
   find_program(CLANG_TIDY_EXE NAMES clang-tidy)
   if (NOT CLANG_TIDY_EXE)
     message(WARNING "clang-tidy not found; ENABLE_TIDY=ON but clang-tidy is unavailable.")
+  endif()
+endif()
+
+# ---- clang-format ----
+if (ENABLE_FORMAT)
+  find_program(CLANG_FORMAT_EXE NAMES clang-format)
+  if (NOT CLANG_FORMAT_EXE)
+    message(WARNING "clang-format not found; ENABLE_FORMAT=ON but clang-format is unavailable.")
   endif()
 endif()
 
@@ -44,6 +53,16 @@ function(configure_cuda_target TARGET)
     set_target_properties(${TARGET} PROPERTIES
       CXX_CLANG_TIDY "${CLANG_TIDY_EXE};--warnings-as-errors=*;--quiet"
     )
+  endif()
+  if (ENABLE_FORMAT AND CLANG_FORMAT_EXE)
+    get_target_property(target_sources ${TARGET} SOURCES)
+    foreach(source_file IN LISTS target_sources)
+      get_filename_component(abs_source "${source_file}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+      add_custom_command(TARGET ${TARGET} PRE_BUILD
+        COMMAND ${CLANG_FORMAT_EXE} -i "${abs_source}"
+        COMMENT "clang-format: ${abs_source}"
+      )
+    endforeach()
   endif()
 endfunction()
 
