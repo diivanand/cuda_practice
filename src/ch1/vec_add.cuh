@@ -5,6 +5,6 @@ namespace ch1 {
 
 // Element-wise float addition: out[i] = a[i] + b[i] for i in [0, n).
 // Threads with i >= n are no-ops; launch with enough blocks to cover n elements.
-__global__ void vec_add(const float* a, const float* b, float* out, int n);
+__global__ auto vec_add(const float* a, const float* b, float* out, int n) -> void;
 
 } // namespace ch1
