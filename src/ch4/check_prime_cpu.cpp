@@ -19,7 +19,7 @@ auto check_prime_cpu(long long num) -> bool {
             return false;
         }
     }
-    // std::cout << "CPU Prime Found: " << num << "\n";
+
     return true;
 }
 
