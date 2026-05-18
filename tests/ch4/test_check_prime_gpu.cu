@@ -8,18 +8,18 @@
 
 namespace {
 
-__global__ void is_prime_batch_kernel(const long long *nums, bool *results,
+__global__ void is_prime_batch_kernel(const long long* nums, char* results,
                                       int count) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < count) {
-        results[idx] = ch4::is_prime_device(nums[idx]);
+        results[idx] = ch4::is_prime_device(nums[idx]) ? 1 : 0;
     }
 }
 
-void run_batch(const std::vector<long long> &nums, std::vector<bool> &results) {
+void run_batch(const std::vector<long long>& nums, std::vector<bool>& results) {
     const int count = static_cast<int>(nums.size());
     cuda_utils::device_buffer<long long> d_nums(count);
-    cuda_utils::device_buffer<bool> d_results(count);
+    cuda_utils::device_buffer<char> d_results(count);
     cuda_utils::copy_to_device(d_nums, nums.data(), count);
 
     const dim3 block(256);
@@ -29,13 +29,10 @@ void run_batch(const std::vector<long long> &nums, std::vector<bool> &results) {
     CUDA_TRY(cudaGetLastError());
     CUDA_TRY(cudaDeviceSynchronize());
 
-    // std::vector<bool> lacks a contiguous data pointer, so copy via a char
-    // buffer.
     std::vector<char> tmp(count);
-    cuda_utils::copy_to_host(reinterpret_cast<bool *>(tmp.data()), d_results,
-                             count);
+    cuda_utils::copy_to_host(tmp.data(), d_results, count);
     for (int i = 0; i < count; ++i) {
-        results[i] = static_cast<bool>(tmp[i]);
+        results[i] = (tmp[i] != 0);
     }
 }
 

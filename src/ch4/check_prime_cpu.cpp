@@ -1,5 +1,7 @@
 #include "check_prime_cpu.h"
 
+#include <iostream>
+
 namespace ch4 {
 
 auto check_prime_cpu(long long num) -> bool {
@@ -17,6 +19,7 @@ auto check_prime_cpu(long long num) -> bool {
             return false;
         }
     }
+    // std::cout << "CPU Prime Found: " << num << "\n";
     return true;
 }
 

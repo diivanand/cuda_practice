@@ -1,10 +1,12 @@
 #pragma once
 
+#include <vector>
+
 namespace ch4 {
 
 __device__ auto is_prime_device(long long n) -> bool;
 
-// Launches a CUDA kernel that tests each integer in [start, end] for primality.
-auto check_prime_gpu_kernel(long long start, long long end) -> void;
+// Finds all primes in [start, end] (odd candidates only). Returns them sorted.
+auto check_prime_gpu_kernel(long long start, long long end) -> std::vector<long long>;
 
 } // namespace ch4
