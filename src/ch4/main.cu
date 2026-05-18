@@ -15,7 +15,7 @@ int main() {
 
     cuda_utils::CudaEventTimer timer;
     timer.record_start();
-    auto gpu_primes = ch4::check_prime_gpu_kernel(start, end);
+    auto gpu_primes = ch4::check_prime_gpu(start, end);
     timer.record_stop();
     const float gpu_ms = timer.elapsed_ms();
 

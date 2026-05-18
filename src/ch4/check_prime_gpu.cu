@@ -38,7 +38,7 @@ __global__ auto prime_range_kernel(const long long start, const long long end,
     }
 }
 
-auto check_prime_gpu_kernel(long long start, long long end)
+auto check_prime_gpu(long long start, long long end)
     -> std::vector<long long> {
     const auto num_candidates = static_cast<std::size_t>((end - start) / 2 + 1);
     constexpr int block = 256;
